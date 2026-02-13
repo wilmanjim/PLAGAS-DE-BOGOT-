@@ -238,92 +238,9 @@
             color: var(--primary-color);
         }
 
-        /* --- MODAL DE CONFIRMACIÓN AR --- */
-        .ar-confirm-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
-            z-index: 3000;
-            justify-content: center;
-            align-items: center;
-            padding: 1rem;
-        }
-
-        .ar-confirm-content {
-            background-color: var(--card-bg);
-            color: var(--card-text);
-            padding: 3rem 2rem;
-            border-radius: 20px;
-            text-align: center;
-            max-width: 500px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-        }
-
-        .ar-confirm-content i {
-            font-size: 4rem;
-            color: var(--primary-color);
-            margin-bottom: 1.5rem;
-        }
-
-        .ar-confirm-content h2 {
-            color: var(--primary-color);
-            margin-bottom: 1rem;
-            font-size: 1.8rem;
-        }
-
-        .ar-confirm-content p {
-            margin-bottom: 2rem;
-            font-size: 1.1rem;
-            line-height: 1.6;
-        }
-
-        .ar-confirm-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-        }
-
-        .btn-confirm-yes {
-            background-color: var(--btn-bg);
-            color: white;
-            padding: 1rem 2rem;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-confirm-yes:hover {
-            background-color: #388E3C;
-            transform: scale(1.05);
-        }
-
-        .btn-confirm-no {
-            background-color: #d32f2f;
-            color: white;
-            padding: 1rem 2rem;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-confirm-no:hover {
-            background-color: #b71c1c;
-            transform: scale(1.05);
-        }
-
         /* --- AR VIEWER --- */
         #ar-viewer {
-            display: none;
+            display: none; /* OCULTO POR DEFECTO */
             position: fixed;
             top: 0;
             left: 0;
@@ -588,24 +505,6 @@
         </div>
     </div>
 
-    <!-- Modal de Confirmación AR -->
-    <div class="ar-confirm-modal" id="ar-confirm-modal">
-        <div class="ar-confirm-content">
-            <i class="fas fa-camera"></i>
-            <h2>Activar Realidad Aumentada</h2>
-            <p>Esta función requiere acceso a la cámara de tu dispositivo para mostrar el holograma de <strong id="ar-plaga-name-confirm"></strong>.</p>
-            <p style="font-size: 0.95rem; color: #666;">¿Deseas activar la cámara ahora?</p>
-            <div class="ar-confirm-buttons">
-                <button class="btn-confirm-yes" onclick="confirmarAR()">
-                    <i class="fas fa-check"></i> Sí, Activar
-                </button>
-                <button class="btn-confirm-no" onclick="cancelarAR()">
-                    <i class="fas fa-times"></i> Cancelar
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal de Detalles -->
     <div class="modal" id="plaga-modal">
         <div class="modal-content">
@@ -624,7 +523,7 @@
 
                 <div class="plaga-actions" style="margin-top: 3rem;">
                     <button class="btn btn-ar" id="modal-ar-btn" style="margin-right: 1rem;">
-                        <i class="fas fa-cube"></i> Ver en RA
+                        <i class="fas fa-cube"></i> Ver en Realidad Aumentada
                     </button>
                     <button class="btn btn-voice" id="modal-voice-btn" aria-label="Leer información">
                         <i class="fas fa-volume-up"></i>
@@ -634,7 +533,7 @@
         </div>
     </div>
 
-    <!-- VISOR AR (INICIALMENTE VACÍO) -->
+    <!-- VISOR AR (INICIALMENTE VACÍO Y OCULTO) -->
     <div id="ar-viewer"></div>
 
     <footer>
@@ -803,17 +702,13 @@
         let currentUtterance = null;
         let isSpeaking = false;
         let arLibrariesLoaded = false;
-        let pendingARPlagaId = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             renderCards();
             setupEvents();
-            
-            // Cargar voces para asegurar disponibilidad
-            window.speechSynthesis.onvoiceschanged = () => {};
         });
 
-        // --- CARGA DINÁMICA DE LIBRERÍAS AR ---
+        // --- CARGA DINÁMICA DE LIBRERÍAS AR (SOLE CUANDO SE NECESITA) ---
         function loadARLibraries() {
             return new Promise((resolve, reject) => {
                 if (arLibrariesLoaded) {
@@ -821,9 +716,11 @@
                     return;
                 }
 
+                // Cargar A-Frame
                 const aframeScript = document.createElement('script');
                 aframeScript.src = 'https://aframe.io/releases/1.3.0/aframe.min.js';
                 aframeScript.onload = () => {
+                    // Cargar AR.js después de A-Frame
                     const arjsScript = document.createElement('script');
                     arjsScript.src = 'https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js';
                     arjsScript.onload = () => {
@@ -901,7 +798,7 @@
             });
             document.getElementById('modal-ar-btn').addEventListener('click', () => {
                 const id = parseInt(document.getElementById('modal-title').dataset.id);
-                requestAR(id);
+                iniciarAR(id); // LLAMADA CORREGIDA
             });
             document.getElementById('modal-voice-btn').addEventListener('click', (e) => {
                 const id = parseInt(document.getElementById('modal-title').dataset.id);
@@ -935,28 +832,9 @@
             stopSpeech();
         }
 
-        // --- SOLICITUD DE AR CON CONFIRMACIÓN ---
-        function requestAR(id) {
+        // --- FUNCIÓN PRINCIPAL AR (CORREGIDA) ---
+        async function iniciarAR(id) {
             const plaga = plagas.find(p => p.id === id);
-            if (!plaga) return;
-
-            pendingARPlagaId = id;
-            document.getElementById('ar-plaga-name-confirm').textContent = plaga.nombre;
-            document.getElementById('ar-confirm-modal').style.display = 'flex';
-        }
-
-        function cancelarAR() {
-            document.getElementById('ar-confirm-modal').style.display = 'none';
-            pendingARPlagaId = null;
-        }
-
-        async function confirmarAR() {
-            if (!pendingARPlagaId) return;
-
-            // Cerrar modal de confirmación
-            document.getElementById('ar-confirm-modal').style.display = 'none';
-            
-            const plaga = plagas.find(p => p.id === pendingARPlagaId);
             if (!plaga) return;
 
             closeModal();
@@ -964,19 +842,24 @@
 
             const arViewer = document.getElementById('ar-viewer');
             
+            // Mostrar el visor con mensaje de carga
             arViewer.style.display = 'block';
             arViewer.innerHTML = `
                 <div class="loading-message">
                     <i class="fas fa-spinner fa-spin"></i><br>
-                    Cargando Realidad Aumentada...<br>
-                    <small>Preparando la cámara</small>
+                    Iniciando Cámara...<br>
+                    <small>Por favor acepte los permisos cuando el navegador lo solicite.</small>
                 </div>
             `;
 
             try {
+                // Cargar librerías AR
                 await loadARLibraries();
-                await new Promise(resolve => setTimeout(resolve, 1000));
                 
+                // Esperar un momento para asegurar la carga
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // AHORA crear la escena AR completa
                 arViewer.innerHTML = `
                     <button id="close-ar" aria-label="Cerrar cámara" onclick="closeARViewer()">
                         <i class="fas fa-times"></i>
@@ -1030,46 +913,37 @@
                     </a-scene>
                 `;
                 
-                pendingARPlagaId = null;
-                
             } catch (error) {
                 console.error('Error cargando AR:', error);
                 arViewer.innerHTML = `
                     <div class="loading-message">
                         <i class="fas fa-exclamation-triangle"></i><br>
                         Error al cargar la cámara<br>
-                        <small>Verifica los permisos de cámara</small>
+                        <small>Verifique los permisos del navegador.</small>
                     </div>
                     <button id="close-ar" aria-label="Cerrar" onclick="closeARViewer()" 
                         style="top: 50%; left: 50%; transform: translate(-50%, 100px);">
                         <i class="fas fa-times"></i>
                     </button>
                 `;
-                pendingARPlagaId = null;
             }
         }
 
         function closeARViewer() {
             const arViewer = document.getElementById('ar-viewer');
             
-            const scene = document.querySelector('a-scene');
-            if (scene) {
-                if (scene.components && scene.components.arjs) {
-                    const arjsSystem = scene.systems.arjs;
-                    if (arjsSystem && arjsSystem.videoTexture && arjsSystem.videoTexture.image) {
-                        const stream = arjsSystem.videoTexture.image.srcObject;
-                        if (stream) {
-                            stream.getTracks().forEach(track => track.stop());
-                        }
-                    }
-                }
+            // Intentar detener la cámara de A-Frame manualmente
+            const video = document.querySelector('video');
+            if (video && video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
             }
             
+            // Limpiar el contenido y ocultar
             arViewer.innerHTML = '';
             arViewer.style.display = 'none';
         }
 
-        // --- TTS ---
+        // --- TTS (Texto a Voz) ---
         function expandAbbreviations(text) {
             let processed = text;
             processed = processed.replace(/\bkm\/h\b/gi, 'kilómetros por hora');
@@ -1077,20 +951,6 @@
             processed = processed.replace(/\bml\/día\b/gi, 'mililitros al día');
             processed = processed.replace(/°C/g, 'grados centígrados');
             processed = processed.replace(/%/g, 'por ciento');
-            processed = processed.replace(/\bh\b/g, 'horas');
-            processed = processed.replace(/\bd\b/g, 'días');
-            processed = processed.replace(/x/g, 'por');
-            processed = processed.replace(/>/g, 'mayor que');
-            processed = processed.replace(/</g, 'menor que');
-            processed = processed.replace(/\//g, ' entre ');
-            processed = processed.replace(/\bkm\b/gi, 'kilómetros');
-            processed = processed.replace(/\bm\b/gi, 'metros');
-            processed = processed.replace(/\bcm\b/gi, 'centímetros');
-            processed = processed.replace(/\bmm\b/gi, 'milímetros');
-            processed = processed.replace(/\bg\b/g, 'gramos');
-            processed = processed.replace(/\bkg\b/gi, 'kilogramos');
-            processed = processed.replace(/\bml\b/gi, 'mililitros');
-            processed = processed.replace(/\bl\b/gi, 'litros');
             return processed;
         }
 
@@ -1106,8 +966,8 @@
             document.querySelectorAll('.btn-voice').forEach(b => b.classList.remove('active'));
             btnElement.classList.add('active');
 
-            let rawText = `Aplicación Plagas de Bogotá. Sección de Datos Matemáticos. Información sobre ${plaga.nombre}, nombre científico ${plaga.nombreCientifico}. ${plaga.descripcion}. `;
-            rawText += "Datos matemáticos: ";
+            let rawText = `Información sobre ${plaga.nombre}, nombre científico ${plaga.nombreCientifico}. ${plaga.descripcion}. `;
+            rawText += "Datos: ";
             plaga.datos.forEach((d, index) => {
                 rawText += `${d.label}: ${d.value}`;
                 if (index < plaga.datos.length - 1) rawText += ". ";
@@ -1123,10 +983,6 @@
             if (spanishVoice) utterance.voice = spanishVoice;
 
             utterance.onend = () => {
-                isSpeaking = false;
-                btnElement.classList.remove('active');
-            };
-            utterance.onerror = () => {
                 isSpeaking = false;
                 btnElement.classList.remove('active');
             };
