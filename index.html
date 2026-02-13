@@ -815,19 +815,30 @@
                     return;
                 }
 
+                // Cargar A-Frame primero
                 const aframeScript = document.createElement('script');
-                aframeScript.src = 'https://aframe.io/releases/1.3.0/aframe.min.js';
+                aframeScript.src = 'https://aframe.io/releases/1.4.0/aframe.min.js';
                 aframeScript.onload = () => {
+                    console.log('A-Frame cargado');
+                    
+                    // Luego cargar AR.js
                     const arjsScript = document.createElement('script');
                     arjsScript.src = 'https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js';
                     arjsScript.onload = () => {
+                        console.log('AR.js cargado');
                         arLibrariesLoaded = true;
                         resolve();
                     };
-                    arjsScript.onerror = reject;
+                    arjsScript.onerror = (error) => {
+                        console.error('Error cargando AR.js:', error);
+                        reject(error);
+                    };
                     document.head.appendChild(arjsScript);
                 };
-                aframeScript.onerror = reject;
+                aframeScript.onerror = (error) => {
+                    console.error('Error cargando A-Frame:', error);
+                    reject(error);
+                };
                 document.head.appendChild(aframeScript);
             });
         }
@@ -929,7 +940,7 @@
             stopSpeech();
         }
 
-        // --- AR LOGIC (CORREGIDA PARA EVITAR PANTALLA NEGRA) ---
+        // --- AR LOGIC (COMPLETAMENTE CORREGIDA) ---
         function requestAR(id) {
             const plaga = plagas.find(p => p.id === id);
             if (!plaga) return;
@@ -962,82 +973,103 @@
                 <div class="loading-message">
                     <i class="fas fa-spinner fa-spin"></i><br>
                     Iniciando Cámara...<br>
-                    <small>Recuerda aceptar los permisos y usar HTTPS</small>
+                    <small>Recuerda aceptar los permisos</small>
                 </div>
             `;
 
             try {
+                // Cargar librerías AR
                 await loadARLibraries();
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Tiempo para inicializar A-Frame
                 
-                // CONFIGURACIÓN CORRECTA: Eliminamos 'matrixCodeType' para usar 'preset="hiro"' correctamente
+                // Esperar a que A-Frame se inicialice completamente
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Crear la escena AR con configuración corregida
                 arViewer.innerHTML = `
                     <button id="close-ar" aria-label="Cerrar cámara" onclick="closeARViewer()">
                         <i class="fas fa-times"></i>
                     </button>
                     <div class="ar-plaga-name">${plaga.nombre}</div>
                     <div class="ar-overlay-info">
-                        <strong><i class="fas fa-search"></i> Instrucción:</strong> Apunta la cámara al marcador cuadrado "HIRO"
+                        <strong><i class="fas fa-search"></i> Instrucción:</strong> Apunta la cámara al marcador HIRO
                     </div>
                     
                     <a-scene 
                         embedded 
-                        arjs="sourceType: webcam; debugUIEnabled: false;" 
+                        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
                         vr-mode-ui="enabled: false"
-                        renderer="logarithmicDepthBuffer: true; precision: medium; alpha: true;">
+                        renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true; alpha: true;"
+                        loading-screen="enabled: false;">
                         
-                        <a-assets>
-                           <img id="plaga-texture" src="${plaga.imagen}">
+                        <a-assets timeout="10000">
+                           <img id="plaga-texture" src="${plaga.imagen}" crossorigin="anonymous">
                         </a-assets>
 
-                        <a-marker preset="hiro">
+                        <a-marker preset="hiro" smooth="true" smoothCount="10" smoothTolerance="0.01" smoothThreshold="5">
                             <a-entity position="0 0 0">
+                                <!-- Plano con imagen de la plaga -->
                                 <a-plane 
-                                    position="0 0.5 0" 
+                                    position="0 0.8 0" 
                                     rotation="-90 0 0"
-                                    width="1.5" 
-                                    height="1.5"
-                                    material="src: #plaga-texture; side: double; transparent: true; opacity: 0.9;"
+                                    width="1.2" 
+                                    height="1.2"
+                                    material="src: #plaga-texture; transparent: true; opacity: 0.95; side: double;"
                                     animation="property: rotation; to: -90 360 0; loop: true; dur: 20000; easing: linear">
                                 </a-plane>
                                 
+                                <!-- Anillo decorativo -->
                                 <a-ring
-                                    position="0 0.5 0"
+                                    position="0 0.8 0"
                                     rotation="-90 0 0"
-                                    radius-inner="0.75"
-                                    radius-outer="0.85"
+                                    radius-inner="0.6"
+                                    radius-outer="0.65"
                                     color="#2d5e3f"
-                                    material="side: double"
+                                    material="side: double; opacity: 0.8;"
                                     animation="property: rotation; to: -90 0 360; loop: true; dur: 15000; easing: linear">
                                 </a-ring>
 
+                                <!-- Texto con nombre científico -->
                                 <a-text
-                                    position="0 1.2 0"
-                                    rotation="-90 0 0"
+                                    position="0 1.4 0"
+                                    rotation="0 0 0"
                                     align="center"
-                                    color="#2d5e3f"
-                                    width="2"
-                                    value="${plaga.nombreCientifico}">
+                                    color="#ffffff"
+                                    width="2.5"
+                                    value="${plaga.nombreCientifico}"
+                                    shader="msdf"
+                                    font="https://raw.githubusercontent.com/etiennepinchon/aframe-fonts/master/fonts/berkshireswash/BerkshireSwash-Regular.json">
                                 </a-text>
+                                
+                                <!-- Base decorativa -->
+                                <a-cylinder
+                                    position="0 0 0"
+                                    radius="0.7"
+                                    height="0.05"
+                                    color="#4CAF50"
+                                    material="opacity: 0.6;">
+                                </a-cylinder>
                             </a-entity>
                         </a-marker>
+                        
                         <a-entity camera></a-entity>
                     </a-scene>
                 `;
                 
+                console.log('Escena AR creada exitosamente');
                 pendingARPlagaId = null;
                 
             } catch (error) {
                 console.error('Error cargando AR:', error);
                 arViewer.innerHTML = `
                     <div class="loading-message">
-                        <i class="fas fa-exclamation-triangle"></i><br>
-                        Error al cargar la cámara<br>
-                        <small>Verifica usar HTTPS y permisos</small>
+                        <i class="fas fa-exclamation-triangle" style="color: #ff5252;"></i><br>
+                        Error al iniciar la cámara<br>
+                        <small>Verifica que estés usando HTTPS y hayas dado permisos de cámara</small><br>
+                        <small style="margin-top: 1rem; display: block;">Error: ${error.message}</small>
                     </div>
                     <button id="close-ar" aria-label="Cerrar" onclick="closeARViewer()" 
-                        style="top: 50%; left: 50%; transform: translate(-50%, 100px);">
-                        <i class="fas fa-times"></i>
+                        style="top: auto; bottom: 20px; left: 50%; transform: translateX(-50%);">
+                        <i class="fas fa-times"></i> Cerrar
                     </button>
                 `;
                 pendingARPlagaId = null;
@@ -1047,10 +1079,18 @@
         function closeARViewer() {
             const arViewer = document.getElementById('ar-viewer');
             
-            // Detener video manualmente si A-Frame no lo hace
+            // Detener el stream de video
             const video = document.querySelector('video');
             if (video && video.srcObject) {
-                video.srcObject.getTracks().forEach(track => track.stop());
+                const tracks = video.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                console.log('Cámara detenida');
+            }
+            
+            // Limpiar la escena A-Frame
+            const aScene = document.querySelector('a-scene');
+            if (aScene && aScene.renderer) {
+                aScene.renderer.dispose();
             }
             
             arViewer.innerHTML = '';
