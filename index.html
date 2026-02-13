@@ -250,18 +250,18 @@
             background-color: black;
         }
 
-        #ar-viewer.loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: rgba(0,0,0,0.9);
-        }
-
         .loading-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             color: white;
             font-size: 1.5rem;
             text-align: center;
             padding: 2rem;
+            background: rgba(0,0,0,0.8);
+            border-radius: 10px;
+            z-index: 10002;
         }
 
         #close-ar {
@@ -533,17 +533,8 @@
         </div>
     </div>
 
-    <!-- VISOR AR -->
-    <div id="ar-viewer">
-        <button id="close-ar" aria-label="Cerrar cámara">
-            <i class="fas fa-times"></i>
-        </button>
-        <div class="ar-plaga-name" id="ar-plaga-name"></div>
-        <div class="ar-overlay-info">
-            <strong><i class="fas fa-search"></i> Instrucción:</strong> Apunta la cámara al marcador cuadrado "HIRO"
-        </div>
-        <div id="ar-scene-container"></div>
-    </div>
+    <!-- VISOR AR (INICIALMENTE VACÍO) -->
+    <div id="ar-viewer"></div>
 
     <footer>
         <p>© 2023 - Aplicación Educativa y Accesible</p>
@@ -711,7 +702,6 @@
         let currentUtterance = null;
         let isSpeaking = false;
         let arLibrariesLoaded = false;
-        let arSceneInitialized = false;
 
         document.addEventListener('DOMContentLoaded', () => {
             renderCards();
@@ -723,7 +713,7 @@
             };
         });
 
-        // --- CARGA DINÁMICA DE LIBRERÍAS AR ---
+        // --- CARGA DINÁMICA DE LIBRERÍAS AR (SOLO CUANDO SE NECESITA) ---
         function loadARLibraries() {
             return new Promise((resolve, reject) => {
                 if (arLibrariesLoaded) {
@@ -748,80 +738,6 @@
                 aframeScript.onerror = reject;
                 document.head.appendChild(aframeScript);
             });
-        }
-
-        // --- INICIALIZAR ESCENA AR CON IMAGEN 2D ---
-        function initializeARScene(plagaData) {
-            const container = document.getElementById('ar-scene-container');
-            
-            // Actualizar nombre de la plaga en AR
-            document.getElementById('ar-plaga-name').textContent = plagaData.nombre;
-            
-            if (!arSceneInitialized) {
-                // Crear escena AR con plano de imagen
-                container.innerHTML = `
-                    <a-scene 
-                        embedded 
-                        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
-                        vr-mode-ui="enabled: false"
-                        renderer="logarithmicDepthBuffer: true; precision: medium; alpha: true;">
-                        
-                        <a-entity light="type: ambient; color: #FFF; intensity: 0.8"></a-entity>
-                        <a-entity light="type: directional; color: #FFF; intensity: 0.5" position="1 1 1"></a-entity>
-
-                        <a-marker preset="hiro">
-                            <a-entity 
-                                id="ar-image-container"
-                                position="0 0 0">
-                                <!-- Plano con la imagen de la plaga -->
-                                <a-plane 
-                                    id="ar-image-plane"
-                                    position="0 0.5 0" 
-                                    rotation="-90 0 0"
-                                    width="1.5" 
-                                    height="1.5"
-                                    material="side: double; transparent: true;"
-                                    animation="property: rotation; to: -90 360 0; loop: true; dur: 20000; easing: linear">
-                                </a-plane>
-                                
-                                <!-- Marco decorativo alrededor de la imagen -->
-                                <a-ring
-                                    position="0 0.5 0"
-                                    rotation="-90 0 0"
-                                    radius-inner="0.75"
-                                    radius-outer="0.85"
-                                    color="#2d5e3f"
-                                    material="side: double"
-                                    animation="property: rotation; to: -90 0 360; loop: true; dur: 15000; easing: linear">
-                                </a-ring>
-
-                                <!-- Texto con nombre científico -->
-                                <a-text
-                                    id="ar-scientific-name"
-                                    position="0 1.2 0"
-                                    rotation="-90 0 0"
-                                    align="center"
-                                    color="#2d5e3f"
-                                    width="2"
-                                    value="">
-                                </a-text>
-                            </a-entity>
-                        </a-marker>
-                        <a-entity camera></a-entity>
-                    </a-scene>
-                `;
-                arSceneInitialized = true;
-            }
-            
-            // Actualizar la imagen del plano
-            setTimeout(() => {
-                const imagePlane = document.getElementById('ar-image-plane');
-                const scientificText = document.getElementById('ar-scientific-name');
-                if (imagePlane && scientificText) {
-                    imagePlane.setAttribute('material', `src: ${plagaData.imagen}; side: double; transparent: true;`);
-                    scientificText.setAttribute('value', plagaData.nombreCientifico);
-                }
-            }, 500);
         }
 
         // --- RENDERIZADO ---
@@ -893,7 +809,6 @@
                 const id = parseInt(document.getElementById('modal-title').dataset.id);
                 toggleSpeech(e.currentTarget, id);
             });
-            document.getElementById('close-ar').addEventListener('click', closeARViewer);
         }
 
         function openModal(id) {
@@ -922,7 +837,7 @@
             stopSpeech();
         }
 
-        // --- AR CON CARGA BAJO DEMANDA E IMÁGENES 2D ---
+        // --- AR CON CARGA COMPLETA BAJO DEMANDA ---
         async function openAR(id) {
             const plaga = plagas.find(p => p.id === id);
             if (!plaga) return;
@@ -931,48 +846,102 @@
             stopSpeech();
 
             const arViewer = document.getElementById('ar-viewer');
-            arViewer.classList.add('loading');
-            arViewer.style.display = 'flex';
             
-            // Mostrar mensaje de carga
-            const loadingMsg = document.createElement('div');
-            loadingMsg.className = 'loading-message';
-            loadingMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i><br>Cargando cámara y RA...<br><small>Se solicitará permiso de cámara</small>';
-            arViewer.appendChild(loadingMsg);
+            // Mostrar el visor con mensaje de carga
+            arViewer.style.display = 'block';
+            arViewer.innerHTML = `
+                <div class="loading-message">
+                    <i class="fas fa-spinner fa-spin"></i><br>
+                    Cargando cámara y RA...<br>
+                    <small>Se solicitará permiso de cámara</small>
+                </div>
+            `;
 
             try {
-                // Cargar librerías AR si no están cargadas
+                // Cargar librerías AR
                 await loadARLibraries();
                 
-                // Esperar un poco para que las librerías se inicialicen
-                await new Promise(resolve => setTimeout(resolve, 500));
+                // Esperar para que las librerías se inicialicen
+                await new Promise(resolve => setTimeout(resolve, 800));
                 
-                // Remover mensaje de carga
-                loadingMsg.remove();
-                arViewer.classList.remove('loading');
-                
-                // Inicializar escena AR con la imagen de la plaga
-                initializeARScene(plaga);
+                // AHORA crear la escena AR completa
+                arViewer.innerHTML = `
+                    <button id="close-ar" aria-label="Cerrar cámara" onclick="closeARViewer()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div class="ar-plaga-name">${plaga.nombre}</div>
+                    <div class="ar-overlay-info">
+                        <strong><i class="fas fa-search"></i> Instrucción:</strong> Apunta la cámara al marcador cuadrado "HIRO"
+                    </div>
+                    
+                    <a-scene 
+                        embedded 
+                        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+                        vr-mode-ui="enabled: false"
+                        renderer="logarithmicDepthBuffer: true; precision: medium; alpha: true;">
+                        
+                        <a-entity light="type: ambient; color: #FFF; intensity: 0.8"></a-entity>
+                        <a-entity light="type: directional; color: #FFF; intensity: 0.5" position="1 1 1"></a-entity>
+
+                        <a-marker preset="hiro">
+                            <a-entity position="0 0 0">
+                                <a-plane 
+                                    position="0 0.5 0" 
+                                    rotation="-90 0 0"
+                                    width="1.5" 
+                                    height="1.5"
+                                    material="src: ${plaga.imagen}; side: double; transparent: true;"
+                                    animation="property: rotation; to: -90 360 0; loop: true; dur: 20000; easing: linear">
+                                </a-plane>
+                                
+                                <a-ring
+                                    position="0 0.5 0"
+                                    rotation="-90 0 0"
+                                    radius-inner="0.75"
+                                    radius-outer="0.85"
+                                    color="#2d5e3f"
+                                    material="side: double"
+                                    animation="property: rotation; to: -90 0 360; loop: true; dur: 15000; easing: linear">
+                                </a-ring>
+
+                                <a-text
+                                    position="0 1.2 0"
+                                    rotation="-90 0 0"
+                                    align="center"
+                                    color="#2d5e3f"
+                                    width="2"
+                                    value="${plaga.nombreCientifico}">
+                                </a-text>
+                            </a-entity>
+                        </a-marker>
+                        <a-entity camera></a-entity>
+                    </a-scene>
+                `;
                 
             } catch (error) {
                 console.error('Error cargando AR:', error);
-                loadingMsg.innerHTML = '<i class="fas fa-exclamation-triangle"></i><br>Error al cargar la cámara<br><small>Por favor, intente nuevamente</small>';
-                setTimeout(() => {
-                    closeARViewer();
-                }, 3000);
+                arViewer.innerHTML = `
+                    <div class="loading-message">
+                        <i class="fas fa-exclamation-triangle"></i><br>
+                        Error al cargar la cámara<br>
+                        <small>Por favor, intente nuevamente</small>
+                    </div>
+                    <button id="close-ar" aria-label="Cerrar" onclick="closeARViewer()" 
+                        style="top: 50%; left: 50%; transform: translate(-50%, 100px);">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
             }
         }
 
         function closeARViewer() {
             const arViewer = document.getElementById('ar-viewer');
-            arViewer.style.display = 'none';
-            arViewer.classList.remove('loading');
             
-            // Detener la cámara y limpiar recursos
-            if (arSceneInitialized) {
-                const scene = document.querySelector('a-scene');
-                if (scene && scene.components && scene.components.arjs) {
-                    // Detener el stream de video
+            // Detener todos los streams de video
+            const scene = document.querySelector('a-scene');
+            if (scene) {
+                // Detener cámara
+                if (scene.components && scene.components.arjs) {
                     const arjsSystem = scene.systems.arjs;
                     if (arjsSystem && arjsSystem.videoTexture && arjsSystem.videoTexture.image) {
                         const stream = arjsSystem.videoTexture.image.srcObject;
@@ -982,38 +951,31 @@
                     }
                 }
             }
+            
+            // Limpiar completamente el contenido
+            arViewer.innerHTML = '';
+            arViewer.style.display = 'none';
         }
 
         // --- FUNCIÓN DE PRE-PROCESAMIENTO DE TEXTO PARA TTS ---
         function expandAbbreviations(text) {
             let processed = text;
             
-            // 1. Unidades compuestas
             processed = processed.replace(/\bkm\/h\b/gi, 'kilómetros por hora');
             processed = processed.replace(/\bg\/día\b/gi, 'gramos al día');
             processed = processed.replace(/\bml\/día\b/gi, 'mililitros al día');
-            
-            // 2. Temperatura y Porcentaje
             processed = processed.replace(/°C/g, 'grados centígrados');
             processed = processed.replace(/%/g, 'por ciento');
-            
-            // 3. Tiempo
             processed = processed.replace(/\bh\b/g, 'horas');
             processed = processed.replace(/\bd\b/g, 'días');
-            
-            // 4. Símbolos matemáticos
             processed = processed.replace(/x/g, 'por');
             processed = processed.replace(/>/g, 'mayor que');
             processed = processed.replace(/</g, 'menor que');
             processed = processed.replace(/\//g, ' entre ');
-            
-            // 5. Unidades de longitud y distancia
             processed = processed.replace(/\bkm\b/gi, 'kilómetros');
             processed = processed.replace(/\bm\b/gi, 'metros');
             processed = processed.replace(/\bcm\b/gi, 'centímetros');
             processed = processed.replace(/\bmm\b/gi, 'milímetros');
-            
-            // 6. Unidades de masa y volumen
             processed = processed.replace(/\bg\b/g, 'gramos');
             processed = processed.replace(/\bkg\b/gi, 'kilogramos');
             processed = processed.replace(/\bml\b/gi, 'mililitros');
@@ -1035,7 +997,6 @@
             document.querySelectorAll('.btn-voice').forEach(b => b.classList.remove('active'));
             btnElement.classList.add('active');
 
-            // Construcción del texto completo
             let rawText = `Aplicación Plagas de Bogotá. Sección de Datos Matemáticos. Información sobre ${plaga.nombre}, nombre científico ${plaga.nombreCientifico}. ${plaga.descripcion}. `;
             
             rawText += "Datos matemáticos: ";
@@ -1044,7 +1005,6 @@
                 if (index < plaga.datos.length - 1) rawText += ". ";
             });
 
-            // Procesar el texto
             const processedText = expandAbbreviations(rawText);
 
             const utterance = new SpeechSynthesisUtterance(processedText);
