@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Plagas de Bogotá - Accesible & AR</title>
+    
+    <!-- Librerías A-Frame y AR.js -->
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    
+    <!-- Iconos y Fuentes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            /* Colores Estándar */
+            --primary-color: #2d5e3f;
+            --secondary-color: #4CAF50;
+            --bg-color: #f0f4f1;
+            --text-color: #333333;
+            --card-bg: #ffffff;
+            --card-text: #222222;
+            --btn-bg: #4CAF50;
+            --btn-text: #ffffff;
+            
+            /* Tipografía Base */
+            --base-font-size: 16px;
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --line-height: 1.5;
+            --letter-spacing: normal;
+            --word-spacing: normal;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            font-size: var(--base-font-size);
+            line-height: var(--line-height);
+            letter-spacing: var(--letter-spacing);
+            word-spacing: var(--word-spacing);
+            transition: background-color 0.3s, color 0.3s;
+            min-height: 100vh;
+        }
+
+        /* --- BARRA DE ACCESIBILIDAD --- */
+        .a11y-bar {
+            background-color: #222;
+            color: white;
+            padding: 0.8rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1001;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .a11y-label {
+            font-weight: bold;
+            margin-right: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .a11y-toggle {
+            background: #444;
+            border: 1px solid #666;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .a11y-toggle:hover, .a11y-toggle.active {
+            background: var(--secondary-color);
+            border-color: var(--secondary-color);
+            font-weight: bold;
+        }
+
+        /* --- HEADER --- */
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            padding: 2rem 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #eee;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* --- CONTENEDOR --- */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        /* --- TARJETAS --- */
+        .plagas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .plaga-card {
+            background-color: var(--card-bg);
+            color: var(--card-text);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #ddd;
+        }
+
+        .plaga-card:hover, .plaga-card:focus-within {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .plaga-img {
+            height: 220px;
+            background-size: cover;
+            background-position: center;
+            background-color: #eee;
+        }
+
+        .plaga-info {
+            padding: 1.5rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .plaga-info h3 {
+            color: var(--primary-color);
+            margin-bottom: 0.2rem;
+            font-size: 1.4rem;
+        }
+
+        .scientific-name {
+            font-style: italic;
+            color: #555;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+
+        .plaga-info p {
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+        }
+
+        .plaga-actions {
+            margin-top: auto;
+            display: flex;
+            gap: 0.8rem;
+        }
+
+        /* --- BOTONES --- */
+        .btn {
+            padding: 0.8rem 1.2rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-ar {
+            background-color: var(--btn-bg);
+            color: var(--btn-text);
+            flex: 1;
+        }
+
+        .btn-ar:hover {
+            background-color: #388E3C;
+        }
+
+        .btn-voice {
+            background-color: #1976D2;
+            color: white;
+            width: 50px;
+            font-size: 1.2rem;
+        }
+
+        .btn-voice:hover, .btn-voice.active {
+            background-color: #D32F2F;
+        }
+
+        /* --- DATOS MATEMÁTICOS --- */
+        .data-list {
+            list-style: none;
+            margin-top: 1rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .data-list li {
+            background: rgba(0,0,0,0.03);
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            border-left: 3px solid var(--secondary-color);
+        }
+
+        .data-list strong {
+            color: var(--primary-color);
+        }
+
+        /* --- AR VIEWER --- */
+        #ar-viewer {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9999;
+            background-color: black;
+        }
+
+        #close-ar {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 2rem;
+            z-index: 10001;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ar-overlay-info {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 30px;
+            z-index: 10001;
+            font-size: 1.1rem;
+            text-align: center;
+            width: 90%;
+            max-width: 500px;
+            border: 2px solid white;
+        }
+
+        /* --- MODAL --- */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+            padding: 1rem;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            color: var(--card-text);
+            width: 100%;
+            max-width: 800px;
+            border-radius: 15px;
+            overflow: hidden;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 2.5rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .modal-body {
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .modal-img {
+            width: 100%;
+            height: 300px;
+            background-size: cover;
+            background-position: center;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            border: 2px solid #eee;
+        }
+
+        .full-data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .data-card {
+            background: #f9f9f9;
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        .data-value {
+            display: block;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .data-label {
+            font-size: 1rem;
+            color: #666;
+        }
+
+        footer {
+            background-color: #222;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+            font-size: 0.9rem;
+        }
+
+        /* --- MODO ACCESIBILIDAD CSS OVERRIDES --- */
+
+        /* 1. Dislexia */
+        body.dyslexia-mode {
+            --font-family: 'Verdana', 'Arial', sans-serif;
+            --letter-spacing: 0.05em;
+            --word-spacing: 0.1em;
+            --line-height: 1.8;
+        }
+        
+        body.dyslexia-mode h1, body.dyslexia-mode h2, body.dyslexia-mode h3 {
+            letter-spacing: 0.1em;
+        }
+
+        /* 2. Alto Contraste */
+        body.high-contrast-mode {
+            --bg-color: #000000;
+            --text-color: #FFFF00; /* Amarillo sobre negro */
+            --card-bg: #000000;
+            --card-text: #FFFFFF;
+            --primary-color: #FFFF00;
+            --btn-bg: #FFFF00;
+            --btn-text: #000000;
+        }
+        
+        body.high-contrast-mode .plaga-card, 
+        body.high-contrast-mode .data-list li,
+        body.high-contrast-mode .data-card,
+        body.high-contrast-mode .modal-content {
+            border: 2px solid #FFFF00;
+        }
+        
+        body.high-contrast-mode .modal-header {
+            background-color: #FFFF00;
+            color: #000000;
+        }
+        
+        body.high-contrast-mode .scientific-name {
+            color: #FFFFFF;
+        }
+
+        /* 3. Letra Grande */
+        body.large-text-mode {
+            --base-font-size: 20px; /* Aumento del 25% aprox */
+        }
+        
+        body.large-text-mode h1 { font-size: 2.5rem; }
+        body.large-text-mode h3 { font-size: 1.8rem; }
+        body.large-text-mode .btn { font-size: 1.2rem; padding: 1rem; }
+        body.large-text-mode .data-value { font-size: 2.2rem; }
+
+        /* Responsive Ajustes */
+        @media (max-width: 768px) {
+            .a11y-bar { justify-content: flex-start; overflow-x: auto; white-space: nowrap; }
+            .plagas-grid { grid-template-columns: 1fr; }
+            .full-data-grid { grid-template-columns: 1fr 1fr; }
+            header { padding: 1.5rem 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Barra de Accesibilidad -->
+    <div class="a11y-bar" role="toolbar" aria-label="Herramientas de accesibilidad">
+        <span class="a11y-label"><i class="fas fa-universal-access"></i> Accesibilidad:</span>
+        <button class="a11y-toggle" id="btn-dyslexia" onclick="toggleMode('dyslexia')">
+            <i class="fas fa-font"></i> Dislexia
+        </button>
+        <button class="a11y-toggle" id="btn-contrast" onclick="toggleMode('contrast')">
+            <i class="fas fa-adjust"></i> Alto Contraste
+        </button>
+        <button class="a11y-toggle" id="btn-large-text" onclick="toggleMode('largeText')">
+            <i class="fas fa-text-height"></i> Letra Grande
+        </button>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <h1><i class="fas fa-bug"></i> Plagas de Bogotá</h1>
+        <p class="subtitle">Datos matemáticos completos y Realidad Aumentada (Marcador HIRO)</p>
+    </header>
+
+    <!-- Contenido -->
+    <div class="container">
+        <div class="plagas-grid" id="plagas-container">
+            <!-- Tarjetas generadas por JS -->
+        </div>
+    </div>
+
+    <!-- Modal de Detalles -->
+    <div class="modal" id="plaga-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Nombre Plaga</h2>
+                <button class="close-btn" id="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-img" id="modal-img"></div>
+                
+                <h3>Descripción Completa</h3>
+                <p id="modal-description" style="font-size: 1.1rem; line-height: 1.8; margin-bottom: 2rem;"></p>
+                
+                <h3><i class="fas fa-calculator"></i> Datos Matemáticos y Estadísticos</h3>
+                <div class="full-data-grid" id="modal-data"></div>
+
+                <div class="plaga-actions" style="margin-top: 3rem;">
+                    <button class="btn btn-ar" id="modal-ar-btn" style="margin-right: 1rem;">
+                        <i class="fas fa-cube"></i> Ver en RA
+                    </button>
+                    <button class="btn btn-voice" id="modal-voice-btn" aria-label="Leer información">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISOR AR -->
+    <div id="ar-viewer">
+        <button id="close-ar" aria-label="Cerrar cámara">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="ar-overlay-info">
+            <strong><i class="fas fa-search"></i> Instrucción:</strong> Apunta la cámara al marcador cuadrado "HIRO"
+        </div>
+
+        <a-scene 
+            embedded 
+            arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+            vr-mode-ui="enabled: false"
+            renderer="logarithmicDepthBuffer: true; precision: medium; alpha: true;">
+            
+            <a-entity light="type: ambient; color: #BBB"></a-entity>
+            <a-entity light="type: directional; color: #FFF; intensity: 0.6" position="-0.5 1 1"></a-entity>
+
+            <a-marker preset="hiro">
+                <a-entity 
+                    id="ar-model-container"
+                    position="0 0.5 0" 
+                    scale="0.5 0.5 0.5"
+                    animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear">
+                    <a-entity id="ar-model-entity"></a-entity>
+                </a-entity>
+            </a-marker>
+            <a-entity camera></a-entity>
+        </a-scene>
+    </div>
+
+    <footer>
+        <p>© 2023 - Aplicación Educativa y Accesible</p>
+    </footer>
+
+    <script>
+        // --- DATOS COMPLETOS Y MATEMÁTICOS ---
+        const plagas = [
+            {
+                id: 1,
+                nombre: "Zancudo Culex",
+                nombreCientifico: "Culex pipiens",
+                descripcion: "El zancudo Culex es un mosquito común en Bogotá que se reproduce en aguas estancadas. A diferencia del Aedes, es más activo durante la noche. Su picadura puede transmitir encefalitis y filariasis.",
+                imagen: "https://i.postimg.cc/9Rr7mXYv/ZANCUDO-CULEX.jpg",
+                datos: [
+                    { label: "Tamaño Promedio", value: "6.5 mm" },
+                    { label: "Huevos por Puesta", value: "100-300" },
+                    { label: "Ciclo de Vida", value: "10-14 días" },
+                    { label: "Alcance Vuelo", value: "1.5 km" },
+                    { label: "Índice Reproductivo", value: "Alto (x12)" },
+                    { label: "Temp. Actividad", value: "> 15°C" },
+                    { label: "Tasa Mortalidad", value: "40% (natural)" },
+                    { label: "Hábito", value: "Nocturno" }
+                ],
+                modelo3D: "https://cdn.glitch.global/5a8a5b5e-7a4b-4cb3-b3c9-5c8e5e5b5b5e/mosquito.glb"
+            },
+            {
+                id: 2,
+                nombre: "Zancudo Aedes",
+                nombreCientifico: "Aedes aegypti",
+                descripcion: "Principal vector del dengue, chikungunya y Zika en Bogotá. Patas rayadas blanco y negro. Hábitos diurnos y prefieren recipientes artificiales con agua limpia.",
+                imagen: "https://i.postimg.cc/47m9f41g/AEDES-AEGYPTI.jpg",
+                datos: [
+                    { label: "Tamaño Promedio", value: "5.5 mm" },
+                    { label: "Huevos por Puesta", value: "150-200" },
+                    { label: "Ciclo de Vida", value: "8-10 días" },
+                    { label: "Alcance Vuelo", value: "400 m" },
+                    { label: "Puesta Huevos", value: "Seca (paredes)" },
+                    { label: "Prob. Transmisión", value: "Alta (90%)" },
+                    { label: "Picos Actividad", value: "6-9 AM / 4-7 PM" },
+                    { label: "Resistencia", value: "Media" }
+                ],
+                modelo3D: "https://cdn.glitch.global/5a8a5b5e-7a4b-4cb3-b3c9-5c8e5e5b5b5e/mosquito.glb"
+            },
+            {
+                id: 3,
+                nombre: "Paloma Turca",
+                nombreCientifico: "Streptopelia decaocto",
+                descripcion: "Especie invasora con collar negro en la nuca. Transmite enfermedades (Salmonela, Histoplasmosis) por excrementos. Causan daños estructurales.",
+                imagen: "https://i.postimg.cc/Fd7LrFxN/PALOMA-TURCA.jpg",
+                datos: [
+                    { label: "Longitud", value: "32 cm" },
+                    { label: "Peso Promedio", value: "180 g" },
+                    { label: "Huevos/Nido", value: "2" },
+                    { label: "Nidos/Año", value: "5-6" },
+                    { label: "Velocidad Vuelo", value: "60 km/h" },
+                    { label: "Densidad Población", value: "Alta (Urbana)" },
+                    { label: "Peso Excremento", value: "2.5 g/día" },
+                    { label: "Esperanza Vida", value: "4 años" }
+                ],
+                modelo3D: "https://cdn.glitch.global/5a8a5b5e-7a4b-4cb3-b3c9-5c8e5e5b5b5e/pigeon.glb"
+            },
+            {
+                id: 4,
+                nombre: "Paloma Común",
+                nombreCientifico: "Columba livia",
+                descripcion: "La paloma urbana por excelencia. Portadora de parásitos (ácaros). Sus excrementos corroen estructuras de concreto y metal debido al ácido úrico.",
+                imagen: "https://i.postimg.cc/wy7mqxkH/COLUMBA-LIVIA.jpg",
+                datos: [
+                    { label: "Longitud", value: "34 cm" },
+                    { label: "Peso Promedio", value: "300 g" },
+                    { label: "Huevos/Nido", value: "2" },
+                    { label: "Incubación", value: "18 días" },
+                    { label: "pH Excremento", value: "3.5 (Ácido)" },
+                    { label: "Población Cdmx", value: "Miles" },
+                    { label: "Alcance Vuelo", value: "5 km" },
+                    { label: "Coloración", value: "Gris variado" }
+                ],
+                modelo3D: "https://cdn.glitch.global/5a8a5b5e-7a4b-4cb3-b3c9-5c8e5e5b5b5e/pigeon.glb"
+            },
+            {
+                id: 5,
+                nombre: "Rata de Techo",
+                nombreCientifico: "Rattus rattus",
+                descripcion: "Ágil trepadora, prefieren partes altas (áticos, árboles). Cola más larga que el cuerpo. Omnívoras. Transmiten peste bubónica y leptospirosis.",
+                imagen: "https://www.fumigroupingenieria.com/wp-content/uploads/03-RATA-DE-TECHO-RATTUS-RATTUS-01.png",
+                datos: [
+                    { label: "Longitud Total", value: "40 cm" },
+                    { label: "Peso Promedio", value: "200 g" },
+                    { label: "Crías/Parto", value: "6-10" },
+                    { label: "Gestación", value: "22 días" },
+                    { label: "Partos/Año", value: "4-5" },
+                    { label: "Relación Cola/Cuerpo", value: "> 1.0" },
+                    { label: "Dieta", value: "Omnívora" },
+                    { label: "Hábitat", value: "Elevado" }
+                ],
+                modelo3D: "https://cdn.glitch.global/5a8a5b5e-7a4b-4cb3-b3c9-5c8e5e5b5b5e/rat.glb"
+            },
+            {
+                id: 6,
+                nombre: "Rata de Alcantarilla",
+                nombreCientifico: "Rattus norvegicus",
+                descripcion: "Conocida como rata noruega o de alcantarilla. Es más grande y robusta que la rata de techo. Habita en zonas subterráneas, sótanos y desagües. Es una excelente nadadora y es considerada la plaga más destructiva en zonas urbanas, transmitiendo enfermedades graves.",
+                imagen: "https://www.restrepogomez.com/wp-content/uploads/2023/07/rata_de_tejado.jpg",
+                datos: [
+                    { label: "Longitud Total", value: "45 cm" },
+                    { label: "Peso Promedio", value: "450 g" },
+                    { label: "Crías/Parto", value: "8-12" },
+                    { label: "Gestación", value: "24 días" },
+                    { label: "Madurez Sexual", value: "3 meses" },
+                    { label: "Consumo Agua", value: "30 ml/día" },
+                    { label: "Enfermedades", value: "Leptospirosis" },
+                    { label: "Hábitat", value: "Subterráneo" }
+                ],
+                modelo3D: "https://cdn.glitch.global/5a8a5b5e-7a4b-4cb3-b3c9-5c8e5e5b5b5e/rat.glb"
+            },
+            {
+                id: 7,
+                nombre: "Cucaracha",
+                nombreCientifico: "Blattella germanica",
+                descripcion: "Insecto nocturno adaptado al interior. Portadora de bacterias (E. coli, Salmonela) y alergenos. Se reproduce rápidamente en grietas y humedades.",
+                imagen: "https://i.postimg.cc/KkRMGc5y/CUCArachas1.jpg",
+                datos: [
+                    { label: "Tamaño", value: "1.3 cm" },
+                    { label: "Huevos/Ooteca", value: "30-40" },
+                    { label: "Ciclo Vida", value: "100 días" },
+                    { label: "Velocidad", value: "5.4 km/h" },
+                    { label: "Resistencia Radio", value: "15x humana" },
+                    { label: "Sin Alimentos", value: "1 mes" },
+                    { label: "Sin Agua", value: "1 semana" },
+                    { label: "Actividad", value: "Nocturna" }
+                ],
+                modelo3D: "https://cdn.glitch.global/5a8a5b5e-7a4b-4cb3-b3c9-5c8e5e5b5b5e/cockroach.glb"
+            },
+            {
+                id: 8,
+                nombre: "Moscas",
+                nombreCientifico: "Musca domestica",
+                descripcion: "Se reproduce en materia orgánica. Transmite más de 100 patógenos (tifoidea, cólera). Ciclo de vida extremadamente rápido.",
+                imagen: "https://i.postimg.cc/PpPwXfMs/MOSCA.jpg",
+                datos: [
+                    { label: "Tamaño", value: "6.5 mm" },
+                    { label: "Huevos/Puesta", value: "120" },
+                    { label: "Ciclo Vida", value: "8 días" },
+                    { label: "Velocidad Vuelo", value: "7.2 km/h" },
+                    { label: "Ojos Compuestos", value: "4000 lentes" },
+                    { label: "Patógenos", value: "100+ tipos" },
+                    { label: "Aleteos/seg", value: "200" },
+                    { label: "Visión", value: "360°" }
+                ],
+                modelo3D: "https://cdn.glitch.global/5a8a5b5e-7a4b-4cb3-b3c9-5c8e5e5b5b5e/fly.glb"
+            },
+            {
+                id: 9,
+                nombre: "Hormiga Carpintera",
+                nombreCientifico: "Camponotus spp.",
+                descripcion: "Excava madera para anidar, causando daños estructurales. No comen madera, solo la habitan. Color negro o rojizo. Atacan si se perturba el nido.",
+                imagen: "https://i.postimg.cc/r0KrVy96/hormiga-carpintera-02.jpg",
+                datos: [
+                    { label: "Tamaño Obrera", value: "6-12 mm" },
+                    { label: "Población Nido", value: "3,000" },
+                    { label: "Vida Reina", value: "10 años" },
+                    { label: "Túneles/Día", value: "10 cm" },
+                    { label: "Dieta", value: "Insectos/Miel" },
+                    { label: "Daño Estructural", value: "Alto" },
+                    { label: "Hábitat", value: "Madera húmeda" },
+                    { label: "Actividad", value: "Nocturna/Crepúsc" }
+                ],
+                modelo3D: "https://cdn.glitch.global/5a8a5b5e-7a4b-4cb3-b3c9-5c8e5e5b5b5e/ant.glb"
+            }
+        ];
+
+        // --- LOGICA ---
+        let currentUtterance = null;
+        let isSpeaking = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCards();
+            setupEvents();
+            
+            // Cargar voces para asegurar disponibilidad
+            window.speechSynthesis.onvoiceschanged = () => {
+                // Solo para precargar, no hace falta hacer nada
+            };
+        });
+
+        // --- FUNCION DE PRE-PROCESAMIENTO DE TEXTO PARA TTS (VERIFICADA) ---
+        function expandAbbreviations(text) {
+            let processed = text;
+            
+            // 1. Unidades compuestas (antes que las simples)
+            processed = processed.replace(/\bkm\/h\b/gi, 'kilómetros por hora');
+            processed = processed.replace(/\bg\/día\b/gi, 'gramos al día');
+            processed = processed.replace(/\bml\/día\b/gi, 'mililitros al día');
+            
+            // 2. Temperatura y Porcentaje
+            processed = processed.replace(/°C/g, 'grados centígrados');
+            processed = processed.replace(/%/g, 'por ciento');
+            
+            // 3. Tiempo (Verificado)
+            processed = processed.replace(/\bh\b/g, 'horas');
+            processed = processed.replace(/\bd\b/g, 'días');
+            
+            // 4. Símbolos matemáticos
+            processed = processed.replace(/x/g, 'por'); // Multiplicación o "por" (ej: x12)
+            processed = processed.replace(/>/g, 'mayor que');
+            processed = processed.replace(/</g, 'menor que');
+            processed = processed.replace(/\//g, ' entre '); // División o separador
+            
+            // 5. Unidades de longitud y distancia (Verificadas)
+            processed = processed.replace(/\bkm\b/gi, 'kilómetros');
+            processed = processed.replace(/\bm\b/gi, 'metros'); // Asumimos 'm' como metros
+            processed = processed.replace(/\bcm\b/gi, 'centímetros');
+            processed = processed.replace(/\bmm\b/gi, 'milímetros');
+            
+            // 6. Unidades de masa y volumen (Verificadas)
+            processed = processed.replace(/\bg\b/g, 'gramos');
+            processed = processed.replace(/\bkg\b/gi, 'kilogramos');
+            processed = processed.replace(/\bml\b/gi, 'mililitros');
+            processed = processed.replace(/\bl\b/gi, 'litros');
+
+            return processed;
+        }
+
+        // --- RENDERIZADO ---
+        function renderCards() {
+            const container = document.getElementById('plagas-container');
+            plagas.forEach(plaga => {
+                let statsHtml = `<ul class="data-list">`;
+                plaga.datos.slice(0, 4).forEach(d => {
+                    statsHtml += `<li><strong>${d.label}:</strong> ${d.value}</li>`;
+                });
+                statsHtml += `</ul>`;
+
+                const card = document.createElement('div');
+                card.className = 'plaga-card';
+                card.innerHTML = `
+                    <div class="plaga-img" style="background-image: url('${plaga.imagen}')" role="img" aria-label="Imagen de ${plaga.nombre}"></div>
+                    <div class="plaga-info">
+                        <h3>${plaga.nombre}</h3>
+                        <p class="scientific-name">${plaga.nombreCientifico}</p>
+                        <p>${plaga.descripcion}</p>
+                        ${statsHtml}
+                        <div class="plaga-actions">
+                            <button class="btn btn-ar" onclick="openModal(${plaga.id})">
+                                <i class="fas fa-list"></i> Ver Datos
+                            </button>
+                            <button class="btn btn-voice" onclick="toggleSpeech(this, ${plaga.id})" aria-label="Leer">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- ACCESIBILIDAD ---
+        function toggleMode(mode) {
+            const body = document.body;
+            const btnMap = {
+                'dyslexia': 'btn-dyslexia',
+                'contrast': 'btn-contrast',
+                'largeText': 'btn-large-text'
+            };
+            const btn = document.getElementById(btnMap[mode]);
+
+            if (mode === 'dyslexia') {
+                body.classList.toggle('dyslexia-mode');
+                btn.classList.toggle('active');
+            } else if (mode === 'contrast') {
+                body.classList.toggle('high-contrast-mode');
+                btn.classList.toggle('active');
+            } else if (mode === 'largeText') {
+                body.classList.toggle('large-text-mode');
+                btn.classList.toggle('active');
+            }
+        }
+
+        // --- MODAL ---
+        function setupEvents() {
+            document.getElementById('close-modal').addEventListener('click', closeModal);
+            document.getElementById('plaga-modal').addEventListener('click', (e) => {
+                if(e.target.id === 'plaga-modal') closeModal();
+            });
+            document.getElementById('modal-ar-btn').addEventListener('click', () => {
+                const id = parseInt(document.getElementById('modal-title').dataset.id);
+                openAR(id);
+            });
+            document.getElementById('modal-voice-btn').addEventListener('click', (e) => {
+                const id = parseInt(document.getElementById('modal-title').dataset.id);
+                toggleSpeech(e.currentTarget, id);
+            });
+            document.getElementById('close-ar').addEventListener('click', closeARViewer);
+        }
+
+        function openModal(id) {
+            const plaga = plagas.find(p => p.id === id);
+            if (!plaga) return;
+
+            document.getElementById('modal-title').textContent = plaga.nombre;
+            document.getElementById('modal-title').dataset.id = id;
+            document.getElementById('modal-img').style.backgroundImage = `url('${plaga.imagen}')`;
+            document.getElementById('modal-description').textContent = plaga.descripcion;
+            
+            const dataContainer = document.getElementById('modal-data');
+            dataContainer.innerHTML = plaga.datos.map(d => `
+                <div class="data-card">
+                    <span class="data-value">${d.value}</span>
+                    <span class="data-label">${d.label}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('plaga-modal').style.display = 'flex';
+            stopSpeech();
+        }
+
+        function closeModal() {
+            document.getElementById('plaga-modal').style.display = 'none';
+            stopSpeech();
+        }
+
+        // --- AR ---
+        function openAR(id) {
+            const plaga = plagas.find(p => p.id === id);
+            if (!plaga) return;
+
+            closeModal();
+            stopSpeech();
+
+            const arViewer = document.getElementById('ar-viewer');
+            arViewer.style.display = 'block';
+
+            const modelEntity = document.getElementById('ar-model-entity');
+            modelEntity.removeAttribute('gltf-model');
+            
+            setTimeout(() => {
+                modelEntity.setAttribute('gltf-model', plaga.modelo3D);
+            }, 100);
+        }
+
+        function closeARViewer() {
+            document.getElementById('ar-viewer').style.display = 'none';
+            const modelEntity = document.getElementById('ar-model-entity');
+            modelEntity.removeAttribute('gltf-model');
+        }
+
+        // --- TTS (Texto a Voz) LECTURA PRECISA ---
+        function toggleSpeech(btnElement, id) {
+            if (isSpeaking) {
+                stopSpeech();
+                return;
+            }
+            
+            const plaga = plagas.find(p => p.id === id);
+            if (!plaga) return;
+
+            document.querySelectorAll('.btn-voice').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            // Construcción del texto completo con títulos de sección
+            let rawText = `Aplicación Plagas de Bogotá. Sección de Datos Matemáticos. Información sobre ${plaga.nombre}, nombre científico ${plaga.nombreCientifico}. ${plaga.descripcion}. `;
+            
+            // Listado de datos
+            rawText += "Datos matemáticos: ";
+            plaga.datos.forEach((d, index) => {
+                rawText += `${d.label}: ${d.value}`;
+                if (index < plaga.datos.length - 1) rawText += ". ";
+            });
+
+            // Procesar el texto para expandir abreviaturas ANTES de crear el utterance
+            const processedText = expandAbbreviations(rawText);
+
+            const utterance = new SpeechSynthesisUtterance(processedText);
+            utterance.lang = 'es-ES';
+            utterance.rate = 0.95; // Velocidad ligeramente más lenta para claridad educativa
+            
+            // Intentar seleccionar una voz en español específica si está disponible
+            const voices = window.speechSynthesis.getVoices();
+            const spanishVoice = voices.find(voice => voice.lang.includes('es'));
+            if (spanishVoice) {
+                utterance.voice = spanishVoice;
+            }
+
+            utterance.onend = () => {
+                isSpeaking = false;
+                btnElement.classList.remove('active');
+            };
+            
+            utterance.onerror = () => {
+                isSpeaking = false;
+                btnElement.classList.remove('active');
+            };
+            
+            isSpeaking = true;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function stopSpeech() {
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+            }
+            isSpeaking = false;
+            document.querySelectorAll('.btn-voice.active').forEach(b => b.classList.remove('active'));
+        }
+    </script>
+</body>
+</html>
